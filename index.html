@@ -1,168 +1,657 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FormiGo - Senderos Sociales</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2c3e50">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#05070c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Encuentra el :)</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{
+    position:fixed;inset:0;overflow:hidden;background:#05070c;
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-user-select:none;user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    touch-action:none;overscroll-behavior:none;
+  }
+  #c{display:block;width:100%;height:100%;touch-action:none;}
+
+  /* ---------- HUD ---------- */
+  #hud{
+    position:fixed;inset:0;pointer-events:none;
+    display:flex;flex-direction:column;align-items:center;
+    padding-top:max(14px,env(safe-area-inset-top));
+  }
+  #timer{
+    font-variant-numeric:tabular-nums;
+    font-size:15px;font-weight:700;letter-spacing:.09em;
+    color:#d5e4ff;background:rgba(10,16,28,.55);
+    border:1px solid rgba(120,160,255,.22);
+    padding:7px 16px;border-radius:999px;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  #resetBtn{
+    position:fixed;top:max(14px,env(safe-area-inset-top));right:14px;
+    pointer-events:auto;
+    background:rgba(10,16,28,.55);border:1px solid rgba(120,160,255,.22);
+    color:#c9d8f5;font-size:13px;font-weight:600;
+    padding:7px 13px;border-radius:999px;cursor:pointer;
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  }
+  #resetBtn:active{background:rgba(40,60,110,.7);}
+
+  /* ---------- Mirilla ---------- */
+  #crosshair{
+    position:fixed;left:50%;top:50%;width:7px;height:7px;
+    margin:-3.5px 0 0 -3.5px;border-radius:50%;
+    background:rgba(255,255,255,.5);
+    box-shadow:0 0 6px rgba(0,0,0,.7);
+    pointer-events:none;
+    transition:background .12s,box-shadow .12s,transform .12s;
+  }
+  #crosshair.hot{
+    background:#7dffb0;
+    box-shadow:0 0 14px #7dffb0,0 0 30px rgba(125,255,176,.5);
+    transform:scale(1.7);
+  }
+
+  /* ---------- Joystick ---------- */
+  #stick{
+    position:fixed;left:0;top:0;width:0;height:0;
+    pointer-events:none;opacity:0;transition:opacity .15s;
+  }
+  #stick.on{opacity:1;}
+  #stickRing,#stickKnob{
+    position:absolute;left:0;top:0;border-radius:50%;
+    transform:translate(-50%,-50%);
+  }
+  #stickRing{
+    width:132px;height:132px;
+    border:2px solid rgba(160,190,255,.32);
+    background:radial-gradient(circle,rgba(90,130,220,.13),rgba(90,130,220,.03) 70%);
+  }
+  #stickKnob{
+    width:56px;height:56px;
+    background:radial-gradient(circle at 35% 30%,rgba(215,230,255,.9),rgba(140,175,255,.5));
+    box-shadow:0 0 20px rgba(120,160,255,.55);
+  }
+
+  /* ---------- Overlays ---------- */
+  .overlay{
+    position:fixed;inset:0;z-index:20;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:16px;padding:30px;text-align:center;
+    background:radial-gradient(circle at 50% 38%,rgba(20,30,58,.9),rgba(4,6,12,.97));
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    transition:opacity .35s;
+  }
+  .overlay.hidden{opacity:0;pointer-events:none;}
+  .overlay h1{
+    font-size:clamp(26px,8vw,42px);font-weight:800;color:#eaf1ff;
+    letter-spacing:-.02em;line-height:1.15;
+  }
+  .overlay .face{color:#7dffb0;text-shadow:0 0 22px rgba(125,255,176,.55);}
+  .overlay p{
+    font-size:clamp(13px,3.8vw,16px);line-height:1.65;
+    color:#9fb2d4;max-width:420px;
+  }
+  .overlay p b{color:#dbe7ff;}
+  .tips{
+    display:flex;flex-direction:column;gap:7px;
+    font-size:13px;color:#8fa4c8;
+    background:rgba(12,20,38,.6);border:1px solid rgba(120,160,255,.16);
+    padding:13px 18px;border-radius:14px;
+  }
+  .tips b{color:#c8d9ff;}
+  button.primary{
+    margin-top:6px;
+    background:linear-gradient(180deg,#5b8cff,#3a63d8);
+    color:#fff;border:none;border-radius:999px;
+    font-size:17px;font-weight:700;letter-spacing:.02em;
+    padding:15px 46px;cursor:pointer;
+    box-shadow:0 8px 30px rgba(70,120,255,.45);
+    transition:transform .1s,box-shadow .1s;
+  }
+  button.primary:active{transform:scale(.96);box-shadow:0 4px 16px rgba(70,120,255,.4);}
+  #winTime{color:#7dffb0;font-variant-numeric:tabular-nums;}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div id="map"></div>
-        <div class="controls">
-            <header>
-                <div class="logo">
-                    <span class="logo-icon">🐜</span>
-                    <h1>FormiGo</h1>
-                </div>
-                <button id="menu-btn" class="icon-btn">
-                    <i class="fas fa-bars"></i>
-                </button>
-            </header>
-            
-            <div class="trail-info">
-                <p><strong>Tu sendero:</strong> <span id="trail-length">0</span> pasos</p>
-                <p><strong>Distancia:</strong> <span id="trail-distance">0.0</span> km</p>
-                <p><strong>Tiempo:</strong> <span id="trail-time">00:00:00</span></p>
-            </div>
-            
-            <div class="action-buttons">
-                <button id="tracking-btn" class="button start-btn">
-                    <i class="fas fa-play"></i> <span class="btn-text">Iniciar</span>
-                </button>
-                
-                <button id="save-btn" class="button secondary-btn" disabled>
-                    <i class="fas fa-save"></i> <span class="btn-text">Guardar</span>
-                </button>
-                
-                <button id="center-btn" class="button icon-btn">
-                    <i class="fas fa-location-arrow"></i>
-                </button>
-            </div>
-            
-            <div class="privacy-toggle">
-                <span>Sendero privado</span>
-                <label class="switch">
-                    <input type="checkbox" id="privacy-toggle">
-                    <span class="slider"></span>
-                </label>
-            </div>
-            
-            <div class="additional-actions">
-                <button id="my-trails-btn" class="button">
-                    <i class="fas fa-list"></i> <span class="btn-text">Mis Senderos</span>
-                </button>
-                
-                <button id="import-export-btn" class="button">
-                    <i class="fas fa-exchange-alt"></i> <span class="btn-text">Compartir</span>
-                </button>
-                
-                <button id="settings-btn" class="button icon-btn">
-                    <i class="fas fa-cog"></i>
-                </button>
-            </div>
-            
-            <div class="status" id="status">
-                Presiona "Iniciar" para comenzar a registrar tu ruta
-            </div>
-        </div>
-    </div>
 
-    <!-- Modal para Mis Senderos -->
-    <div id="trails-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Mis Senderos Guardados</h2>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div id="trails-list" class="trail-list">
-                    <!-- Los senderos se cargarán aquí dinámicamente -->
-                </div>
-            </div>
-        </div>
-    </div>
+<canvas id="c"></canvas>
 
-    <!-- Modal para Importar/Exportar -->
-    <div id="import-export-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Importar/Exportar Senderos</h2>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="import-export">
-                    <div class="export-section">
-                        <h3>Exportar Sendero</h3>
-                        <p>Selecciona un sendero para exportar:</p>
-                        <select id="export-select" class="code-area"></select>
-                        <textarea id="export-code" class="code-area" placeholder="El código aparecerá aquí..." readonly></textarea>
-                        <button id="copy-btn" class="button secondary-btn">
-                            <i class="fas fa-copy"></i> Copiar Código
-                        </button>
-                    </div>
-                    
-                    <div class="import-section">
-                        <h3>Importar Sendero</h3>
-                        <textarea id="import-code" class="code-area" placeholder="Pega aquí el código del sendero..."></textarea>
-                        <button id="import-btn" class="button">
-                            <i class="fas fa-file-import"></i> Importar Sendero
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<div id="hud"><div id="timer">0.0s</div></div>
+<button id="resetBtn">Reiniciar</button>
+<div id="crosshair"></div>
+<div id="stick"><div id="stickRing"></div><div id="stickKnob"></div></div>
 
-    <!-- Modal de configuración -->
-    <div id="settings-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Configuración</h2>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="setting-item">
-                    <label for="map-style">Estilo del mapa:</label>
-                    <select id="map-style">
-                        <option value="standard">Standard</option>
-                        <option value="satellite">Satélite</option>
-                        <option value="terrain">Terreno</option>
-                    </select>
-                </div>
-                
-                <div class="setting-item">
-                    <label for="distance-unit">Unidad de distancia:</label>
-                    <select id="distance-unit">
-                        <option value="km">Kilómetros</option>
-                        <option value="mi">Millas</option>
-                    </select>
-                </div>
-                
-                <div class="setting-item">
-                    <label for="accuracy-filter">Filtro de precisión (metros):</label>
-                    <input type="range" id="accuracy-filter" min="0" max="50" value="20">
-                    <span id="accuracy-value">20m</span>
-                </div>
-                
-                <div class="setting-item">
-                    <label>
-                        <input type="checkbox" id="auto-save">
-                        Guardado automático al detener
-                    </label>
-                </div>
-            </div>
-        </div>
-    </div>
+<div id="intro" class="overlay">
+  <h1>Encuentra el <span class="face">:)</span></h1>
+  <p>Hay <b>un solo píxel</b> con una carita sonriente escondido entre miles de píxeles de colores.<br>Recorre la sala y apúntale con la mirilla para atraparlo.</p>
+  <div class="tips">
+    <div><b>Mitad izquierda</b> · joystick para moverte</div>
+    <div><b>Mitad derecha</b> · arrastra para mirar</div>
+  </div>
+  <button class="primary" id="btnStart">Comenzar</button>
+</div>
 
-    <!-- Toast de notificación -->
-    <div id="toast" class="toast"></div>
+<div id="win" class="overlay hidden">
+  <h1>¡Encontrado! <span class="face">:)</span></h1>
+  <p>Tiempo: <b id="winTime">0.0s</b></p>
+  <button class="primary" id="btnAgain">Jugar de nuevo</button>
+</div>
 
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <script src="app.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* =========================================================
+   CONFIGURACIÓN
+   ========================================================= */
+const ROOM = { w: 32, h: 20, d: 32 };        // ancho, alto, fondo
+const HW = ROOM.w / 2, HH = ROOM.h / 2, HD = ROOM.d / 2;
+const EYE         = 1.65;                     // altura de ojos
+const MOVE_SPEED  = 6.2;                      // unidades/seg
+const LOOK_SENS   = 0.0032;                   // radianes por píxel
+const STICK_R     = 58;                       // radio del joystick (px)
+const AIM_HOLD    = 0.32;                     // segundos apuntando para ganar
+
+/* =========================================================
+   RENDERER / ESCENA
+   ========================================================= */
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({
+  canvas, antialias: false, powerPreference: 'high-performance'
+});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const MAX_ANISO = renderer.capabilities.getMaxAnisotropy();
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x05070c);
+
+const camera = new THREE.PerspectiveCamera(
+  72, window.innerWidth / window.innerHeight, 0.1, 300
+);
+camera.rotation.order = 'YXZ';
+
+/* =========================================================
+   TEXTURAS PROCEDURALES
+   ========================================================= */
+function makeTileTexture() {
+  const s = 64;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = s;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, s, s);
+  ctx.strokeStyle = 'rgba(0,0,0,0.34)';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(1.25, 1.25, s - 2.5, s - 2.5);
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = MAX_ANISO;
+  return t;
+}
+
+function makeSmileyTexture() {
+  const s = 128;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = s;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, s, s);
+
+  const ink = '#0a0a12';
+  ctx.fillStyle = ink;
+  ctx.strokeStyle = ink;
+  ctx.lineCap = 'round';
+
+  // ojos
+  ctx.beginPath();
+  ctx.arc(s * 0.32, s * 0.35, s * 0.085, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(s * 0.68, s * 0.35, s * 0.085, 0, Math.PI * 2);
+  ctx.fill();
+
+  // sonrisa
+  ctx.beginPath();
+  ctx.arc(s * 0.5, s * 0.47, s * 0.25, Math.PI * 0.17, Math.PI * 0.83);
+  ctx.lineWidth = s * 0.105;
+  ctx.stroke();
+
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = MAX_ANISO;
+  return t;
+}
+
+const tileTex   = makeTileTexture();
+const smileyTex = makeSmileyTexture();
+
+/* =========================================================
+   DEFINICIÓN DE LAS 6 CARAS DE LA SALA
+   Cada cara: centro, normal (hacia dentro), ejes u/v, y rotación
+   ========================================================= */
+const faces = [
+  { // +X
+    pos: new THREE.Vector3( HW, 0, 0), n: new THREE.Vector3(-1, 0, 0),
+    u: new THREE.Vector3(0, 0, 1),  v: new THREE.Vector3(0, 1, 0),
+    nu: ROOM.d, nv: ROOM.h, rot: new THREE.Euler(0, -Math.PI / 2, 0)
+  },
+  { // -X
+    pos: new THREE.Vector3(-HW, 0, 0), n: new THREE.Vector3( 1, 0, 0),
+    u: new THREE.Vector3(0, 0, -1), v: new THREE.Vector3(0, 1, 0),
+    nu: ROOM.d, nv: ROOM.h, rot: new THREE.Euler(0,  Math.PI / 2, 0)
+  },
+  { // +Z
+    pos: new THREE.Vector3(0, 0,  HD), n: new THREE.Vector3(0, 0, -1),
+    u: new THREE.Vector3(-1, 0, 0), v: new THREE.Vector3(0, 1, 0),
+    nu: ROOM.w, nv: ROOM.h, rot: new THREE.Euler(0, Math.PI, 0)
+  },
+  { // -Z
+    pos: new THREE.Vector3(0, 0, -HD), n: new THREE.Vector3(0, 0,  1),
+    u: new THREE.Vector3( 1, 0, 0), v: new THREE.Vector3(0, 1, 0),
+    nu: ROOM.w, nv: ROOM.h, rot: new THREE.Euler(0, 0, 0)
+  },
+  { // Techo +Y
+    pos: new THREE.Vector3(0,  HH, 0), n: new THREE.Vector3(0, -1, 0),
+    u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 0, 1),
+    nu: ROOM.w, nv: ROOM.d, rot: new THREE.Euler( Math.PI / 2, 0, 0)
+  },
+  { // Suelo -Y
+    pos: new THREE.Vector3(0, -HH, 0), n: new THREE.Vector3(0, 1, 0),
+    u: new THREE.Vector3(1, 0, 0), v: new THREE.Vector3(0, 0, -1),
+    nu: ROOM.w, nv: ROOM.d, rot: new THREE.Euler(-Math.PI / 2, 0, 0)
+  }
+];
+
+// offsets de índice por cara + total
+const faceOffset = [];
+let totalTiles = 0;
+for (const f of faces) { faceOffset.push(totalTiles); totalTiles += f.nu * f.nv; }
+
+/* =========================================================
+   CONSTRUCCIÓN DE LA SALA (InstancedMesh)
+   ========================================================= */
+const tileGeo = new THREE.PlaneGeometry(1, 1);
+const tileMat = new THREE.MeshBasicMaterial({ map: tileTex, side: THREE.FrontSide });
+const tiles   = new THREE.InstancedMesh(tileGeo, tileMat, totalTiles);
+tiles.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+
+const _dummy = new THREE.Object3D();
+const _col   = new THREE.Color();
+
+(function buildRoom() {
+  let p = 0;
+  for (let f = 0; f < faces.length; f++) {
+    const face = faces[f];
+    _dummy.rotation.copy(face.rot);
+    for (let j = 0; j < face.nv; j++) {
+      for (let i = 0; i < face.nu; i++) {
+        _dummy.position
+          .copy(face.pos)
+          .addScaledVector(face.u, i - (face.nu - 1) / 2)
+          .addScaledVector(face.v, j - (face.nv - 1) / 2);
+        _dummy.updateMatrix();
+        tiles.setMatrixAt(p, _dummy.matrix);
+
+        _col.setHSL(
+          Math.random(),
+          0.35 + Math.random() * 0.45,
+          0.30 + Math.random() * 0.28
+        );
+        tiles.setColorAt(p, _col);
+        p++;
+      }
+    }
+  }
+  tiles.instanceMatrix.needsUpdate = true;
+  tiles.instanceColor.needsUpdate = true;
+  scene.add(tiles);
+})();
+
+/* =========================================================
+   EL PÍXEL SONRIENTE
+   ========================================================= */
+const smileyMesh = new THREE.Mesh(
+  new THREE.PlaneGeometry(1, 1),
+  new THREE.MeshBasicMaterial({
+    map: smileyTex, transparent: true, depthWrite: false, side: THREE.FrontSide
+  })
+);
+scene.add(smileyMesh);
+
+const _smileyPos    = new THREE.Vector3();
+const _smileyNormal = new THREE.Vector3();
+let smileyIndex = -1;
+
+function tileTransform(faceIdx, i, j) {
+  const face = faces[faceIdx];
+  const pos = new THREE.Vector3()
+    .copy(face.pos)
+    .addScaledVector(face.u, i - (face.nu - 1) / 2)
+    .addScaledVector(face.v, j - (face.nv - 1) / 2);
+  return { pos, rot: face.rot, n: face.n };
+}
+
+function placeSmiley() {
+  // restaurar el color del píxel anterior
+  if (smileyIndex >= 0) {
+    _col.setHSL(Math.random(), 0.35 + Math.random() * 0.45, 0.30 + Math.random() * 0.28);
+    tiles.setColorAt(smileyIndex, _col);
+  }
+
+  // elegir una cara entre las 4 paredes + el techo (índices 0..4)
+  const f = Math.floor(Math.random() * 5);
+  const i = Math.floor(Math.random() * faces[f].nu);
+  const j = Math.floor(Math.random() * faces[f].nv);
+
+  const face = faces[f];
+  smileyIndex = faceOffset[f] + j * face.nu + i;
+
+  const t = tileTransform(f, i, j);
+  _smileyPos.copy(t.pos);
+  _smileyNormal.copy(t.n);
+
+  smileyMesh.position.copy(t.pos).addScaledVector(t.n, 0.02);
+  smileyMesh.rotation.copy(face.rot);
+
+  // el píxel sonriente es algo más claro para que la carita contraste
+  _col.setHSL(Math.random(), 0.62, 0.74);
+  tiles.setColorAt(smileyIndex, _col);
+
+  tiles.instanceColor.needsUpdate = true;
+}
+
+placeSmiley();
+
+/* =========================================================
+   ESTADO DEL JUGADOR
+   ========================================================= */
+const playerPos = new THREE.Vector3(0, -HH + EYE, 0);
+let yaw = 0, pitch = 0;
+let state = 'intro';            // 'intro' | 'playing' | 'won'
+let elapsed = 0;
+let aimTimer = 0;
+
+const LIM_X = HW - 0.7;
+const LIM_Z = HD - 0.7;
+
+/* =========================================================
+   ENTRADA TÁCTIL
+   ========================================================= */
+let moveId = null, lookId = null;
+let baseX = 0, baseY = 0, curX = 0, curY = 0;
+let lookLastX = 0, lookLastY = 0;
+let jx = 0, jy = 0;
+
+const stickEl = document.getElementById('stick');
+const knobEl  = document.getElementById('stickKnob');
+
+function updateStickVisual() {
+  let dx = curX - baseX, dy = curY - baseY;
+  const len = Math.hypot(dx, dy);
+  if (len > STICK_R) {
+    dx = (dx / len) * STICK_R;
+    dy = (dy / len) * STICK_R;
+  }
+  knobEl.style.left = dx + 'px';
+  knobEl.style.top  = dy + 'px';
+  jx = dx / STICK_R;
+  jy = dy / STICK_R;
+}
+
+function onDown(e) {
+  if (state !== 'playing') return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+  const x = e.clientX, y = e.clientY;
+  const inLeftZone = x < window.innerWidth * 0.45;
+
+  if (inLeftZone && moveId === null) {
+    moveId = e.pointerId;
+    baseX = x; baseY = y; curX = x; curY = y;
+    stickEl.style.left = baseX + 'px';
+    stickEl.style.top  = baseY + 'px';
+    stickEl.classList.add('on');
+    updateStickVisual();
+    e.preventDefault();
+  } else if (lookId === null) {
+    lookId = e.pointerId;
+    lookLastX = x; lookLastY = y;
+    e.preventDefault();
+  }
+}
+
+function onMove(e) {
+  if (e.pointerId === moveId) {
+    curX = e.clientX; curY = e.clientY;
+    updateStickVisual();
+  } else if (e.pointerId === lookId) {
+    const dx = e.clientX - lookLastX;
+    const dy = e.clientY - lookLastY;
+    lookLastX = e.clientX;
+    lookLastY = e.clientY;
+
+    yaw   -= dx * LOOK_SENS;
+    pitch -= dy * LOOK_SENS;
+    pitch = Math.max(-1.45, Math.min(1.45, pitch));
+  }
+}
+
+function onUp(e) {
+  if (e.pointerId === moveId) {
+    moveId = null;
+    jx = 0; jy = 0;
+    stickEl.classList.remove('on');
+  } else if (e.pointerId === lookId) {
+    lookId = null;
+  }
+}
+
+canvas.addEventListener('pointerdown', onDown);
+window.addEventListener('pointermove', onMove);
+window.addEventListener('pointerup', onUp);
+window.addEventListener('pointercancel', onUp);
+
+/* =========================================================
+   SONIDO (WebAudio, se activa con el primer gesto)
+   ========================================================= */
+let actx = null;
+function ensureAudio() {
+  try {
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+  } catch (err) { /* silencio */ }
+}
+function chime() {
+  if (!actx) return;
+  const now = actx.currentTime;
+  [523.25, 659.25, 783.99].forEach((freq, i) => {
+    const o = actx.createOscillator();
+    const g = actx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    const t0 = now + i * 0.085;
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(0.16, t0 + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.55);
+    o.connect(g); g.connect(actx.destination);
+    o.start(t0); o.stop(t0 + 0.6);
+  });
+}
+
+/* =========================================================
+   UI
+   ========================================================= */
+const introEl   = document.getElementById('intro');
+const winEl     = document.getElementById('win');
+const timerEl   = document.getElementById('timer');
+const winTimeEl = document.getElementById('winTime');
+const crossEl   = document.getElementById('crosshair');
+
+let lastTimerText = '';
+
+function fmtTime(t) {
+  const m = Math.floor(t / 60);
+  const s = t - m * 60;
+  return m > 0
+    ? `${m}:${s.toFixed(1).padStart(4, '0')}`
+    : `${s.toFixed(1)}s`;
+}
+
+function resetGame() {
+  elapsed = 0;
+  aimTimer = 0;
+  lastTimerText = '';
+  timerEl.textContent = '0.0s';
+
+  playerPos.set(0, -HH + EYE, 0);
+  yaw = 0; pitch = 0;
+
+  jx = 0; jy = 0;
+  moveId = null; lookId = null;
+  stickEl.classList.remove('on');
+  crossEl.classList.remove('hot');
+
+  placeSmiley();
+
+  winEl.classList.add('hidden');
+  introEl.classList.add('hidden');
+  state = 'playing';
+}
+
+document.getElementById('btnStart').addEventListener('click', () => {
+  ensureAudio();
+  resetGame();
+});
+document.getElementById('btnAgain').addEventListener('click', () => {
+  ensureAudio();
+  resetGame();
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  ensureAudio();
+  resetGame();
+});
+
+/* =========================================================
+   LÓGICA DE JUEGO
+   ========================================================= */
+const _camDir = new THREE.Vector3();
+const _toS    = new THREE.Vector3();
+
+function updateMovement(dt) {
+  // dirección "adelante" según el yaw
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw);
+  const rx =  Math.cos(yaw), rz = -Math.sin(yaw);
+
+  const forwardAmount = -jy;   // pantalla hacia arriba = avanzar
+  const strafeAmount  =  jx;
+
+  playerPos.x += (fx * forwardAmount + rx * strafeAmount) * MOVE_SPEED * dt;
+  playerPos.z += (fz * forwardAmount + rz * strafeAmount) * MOVE_SPEED * dt;
+
+  playerPos.x = Math.max(-LIM_X, Math.min(LIM_X, playerPos.x));
+  playerPos.z = Math.max(-LIM_Z, Math.min(LIM_Z, playerPos.z));
+}
+
+function updateCamera() {
+  camera.position.copy(playerPos);
+  camera.rotation.set(pitch, yaw, 0);
+}
+
+function checkAim(dt) {
+  camera.getWorldDirection(_camDir);
+
+  _toS.copy(smileyMesh.position).sub(camera.position);
+  const along = _toS.dot(_camDir);
+
+  let near = false;
+  let onTarget = false;
+
+  if (along > 0.5) {
+    // distancia perpendicular de la mirilla al píxel sonriente
+    const perp = Math.sqrt(Math.max(0, _toS.lengthSq() - along * along));
+    // tolerancia que crece ligeramente con la distancia
+    const tol = Math.max(0.75, along * 0.035);
+
+    onTarget = perp < tol;
+    near     = perp < tol * 2.6;
+  }
+
+  crossEl.classList.toggle('hot', near);
+
+  if (onTarget) {
+    aimTimer += dt;
+    if (aimTimer >= AIM_HOLD) winGame();
+  } else {
+    aimTimer = 0;
+  }
+}
+
+function winGame() {
+  if (state !== 'playing') return;
+  state = 'won';
+  crossEl.classList.remove('hot');
+  stickEl.classList.remove('on');
+  moveId = null; lookId = null;
+  jx = 0; jy = 0;
+
+  winTimeEl.textContent = fmtTime(elapsed);
+  winEl.classList.remove('hidden');
+  chime();
+}
+
+/* =========================================================
+   BUCLE PRINCIPAL
+   ========================================================= */
+const clock = new THREE.Clock();
+
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+
+  if (state === 'playing') {
+    elapsed += dt;
+    updateMovement(dt);
+    updateCamera();
+    checkAim(dt);
+
+    const txt = fmtTime(elapsed);
+    if (txt !== lastTimerText) {
+      lastTimerText = txt;
+      timerEl.textContent = txt;
+    }
+  } else {
+    updateCamera();
+  }
+
+  renderer.render(scene, camera);
+});
+
+/* =========================================================
+   RESIZE
+   ========================================================= */
+function onResize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(w, h, false);
+}
+window.addEventListener('resize', onResize);
+window.addEventListener('orientationchange', () => setTimeout(onResize, 250));
+</script>
 </body>
 </html>
