@@ -1,129 +1,20 @@
-![FormiGo Logo](logo_FormiGO.png)
+# Castells 3D · Diada a la plaça
 
-> Social trail mapping inspired by ant colony behavior
+Juego web de castellers (torres humanas catalanas) hecho con three.js r128.
+Todo el juego está en un único archivo: `index.html`.
 
-## About
+## Cómo abrirlo
+- Abre `index.html` en un navegador moderno (necesita conexión para cargar three.js desde cdnjs y las fuentes de Google Fonts).
+- Para probarlo en el móvil, sírvelo por HTTPS (p. ej. Vercel, Netlify o GitHub Pages). El control por inclinación necesita HTTPS.
 
-FormiGo is a progressive web application that allows users to track, save, and share their routes - creating a collective network of trails similar to how ants communicate paths to food sources. The application uses geolocation technology to record your movements and visualizes them on an interactive map.
+## Contenido
+- 39 castells de la taula de puntuacions del Concurs de Castells 2026 (carregat / descarregat).
+- Estructura generada: pinya, folre, manilles, puntals, agulla, tronc y pom de dalt (dosos, acotxador, enxaneta).
+- Modos: diada de concurs (hasta 5 rondas, 3 mejores castells distintos, máximo 2 carregats) y assaig lliure.
+- Controles: joystick flotante (mitad inferior), inclinación del móvil, o teclado (flechas/WASD + espacio para la aleta).
+- Música de gralles i timbals sintetizada con Web Audio (melodía original de inspiración tradicional).
+- Récord de diada guardado en localStorage.
 
-**Current Status: Alpha Release**
-> This is an early alpha version. Features may be incomplete, and you may encounter bugs. We appreciate your feedback and patience as we continue development.
-
-## Features
-
-- 📍 Real-time GPS tracking with accuracy filtering
-- 🗺️ Multiple map styles (Standard, Satellite, Terrain)
-- 💾 Local storage of your trails
-- 📤 Import/Export functionality for sharing trails
-- ⚙️ Customizable settings (units, accuracy, auto-save)
-- 📱 Responsive PWA design - works on mobile and desktop
-- 🎨 Minimalist, intuitive interface
-
-## Getting Started
-
-### Prerequisites
-
-- Modern browser with geolocation support
-- GPS enabled device
-- HTTPS connection (required for geolocation API)
-
-### Installation
-
-No installation required! Simply visit [[FormiGO](https://mpetovick.github.io/FormiGO/)].
-
-For offline use:
-1. Open the app in your browser
-2. Use "Add to Home Screen" functionality on mobile devices
-3. The app will work without internet connection for basic tracking
-
-### Usage
-
-1. **Allow location permissions** when prompted
-2. Click "Start" to begin tracking your route
-3. Move around to create your trail
-4. Click "Stop" when finished
-5. Name and save your trail
-6. Access "My Trails" to view, share, or export your saved routes
-
-#### Keyboard Shortcuts
-- `Space`: Start/Stop tracking
-- `Escape`: Close modals
-
-## Technology Stack
-
-- Vanilla JavaScript (ES6+)
-- Leaflet.js for mapping
-- HTML5 Geolocation API
-- CSS3 with Flexbox/Grid
-- Progressive Web App (PWA) capabilities
-- LocalStorage for data persistence
-
-## Development
-
-### Project Structure
-```
-formigo/
-├── index.html      # Main application page
-├── style.css       # Styles and responsive layout
-├── app.js          # Application logic and functionality
-└── logo_FormiGO.png # Application logo
-```
-
-### Browser Support
-
-- Chrome/Edge 79+
-- Firefox 72+
-- Safari 13.1+
-- Mobile browsers with geolocation support
-
-## Contributing
-
-As an alpha release, we welcome feedback and bug reports. Please submit issues for:
-
-- Functional bugs
-- UI/UX suggestions
-- Feature requests
-- Performance issues
-
-## Known Issues (Alpha)
-
-- GPS accuracy may vary by device
-- Battery usage may be high during extended tracking
-- Import/export functionality may fail with very large trails
-- Some mobile browsers may restrict background geolocation
-
-## Roadmap
-
-### Alpha Phase Focus
-- Core tracking functionality stabilization
-- Basic import/export reliability
-- Performance optimization
-
-### Planned Features
-- Social sharing capabilities
-- Trail difficulty ratings
-- Collaborative trail editing
-- Advanced statistics and analytics
-- Native mobile applications
-
-## Privacy
-
-FormiGo respects your privacy:
-- All data is stored locally on your device
-- No location data is transmitted to our servers
-- You control what trails you share through export codes
-- Private trails remain exclusively on your device
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For support during the alpha phase, please create an issue in this repository or contact our development team at Telegram @MP_Systems.
-
----
-
-**Remember**: This is alpha software. Always verify trails against official maps and local conditions before relying on them for navigation.
-
-Happy trail mapping! 🐜✨
+## Notas
+- Colores de las colles aproximados.
+- Interfaz en catalán.
